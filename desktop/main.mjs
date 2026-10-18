@@ -48,6 +48,8 @@ let control,
   client,
   token = "",
   lastPose = 0,
+  pendingPose,
+  poseTimer,
   saveQueue = Promise.resolve(),
   encryptedStorage = false;
 const state = {
@@ -65,6 +67,19 @@ function emit() {
 }
 function plainState() {
   return structuredClone(state);
+}
+function cancelPendingPose() {
+  clearTimeout(poseTimer);
+  poseTimer = undefined;
+  pendingPose = undefined;
+}
+function flushPose() {
+  poseTimer = undefined;
+  if (!pendingPose || state.mode === "vts") return;
+  state.pose = pendingPose;
+  pendingPose = undefined;
+  lastPose = Date.now();
+  emit();
 }
 function save() {
   const data = JSON.stringify({
@@ -280,6 +295,7 @@ app
     command("mode", async (mode) => {
       if (!["manual", "mic", "vts"].includes(mode))
         throw Error("지원하지 않는 입력입니다.");
+      cancelPendingPose();
       client.stop();
       micAllowed = false;
       if (mode === "mic") {
@@ -320,12 +336,11 @@ app
     });
     command("pose", (value) => {
       if (state.mode === "vts") return;
-      const next = pose(value);
-      const now = Date.now();
-      if (now - lastPose < 20) return;
-      lastPose = now;
-      state.pose = next;
-      emit();
+      pendingPose = pose(value);
+      if (poseTimer) return;
+      const delay = Math.max(0, 20 - (Date.now() - lastPose));
+      if (delay) poseTimer = setTimeout(flushPose, delay);
+      else flushPose();
     });
     command("quit", () => app.quit());
     Menu.setApplicationMenu(null);
@@ -371,6 +386,7 @@ app
     app.quit();
   });
 app.on("before-quit", () => {
+  cancelPendingPose();
   micAllowed = false;
   client?.stop();
 });

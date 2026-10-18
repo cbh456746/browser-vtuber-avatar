@@ -72,6 +72,29 @@ try {
   await page.locator("#pose-mouth").fill("0.8");
   await page.locator("#pose-x").fill("0.5");
   await page.waitForTimeout(100);
+  await page.evaluate(async () => {
+    await window.avatarStudio.pose({ x: 1, y: 0, eyes: false, mouth: 1 });
+    await window.avatarStudio.pose({ x: 0, y: 0, eyes: true, mouth: 0 });
+  });
+  await page.waitForFunction(async () => {
+    const { pose } = await window.avatarStudio.state();
+    return pose.x === 0 && pose.eyes === true && pose.mouth === 0;
+  });
+  await page.evaluate(async () => {
+    await window.avatarStudio.pose({ x: 1, y: 0, eyes: true, mouth: 1 });
+    await window.avatarStudio.pose({ x: -1, y: 0, eyes: true, mouth: 1 });
+    await window.avatarStudio.mode("manual");
+  });
+  await page.waitForTimeout(50);
+  assert.deepEqual(
+    await page.evaluate(async () => (await window.avatarStudio.state()).pose),
+    {
+      x: 0,
+      y: 0,
+      eyes: false,
+      mouth: 0,
+    },
+  );
   await page.locator("#help-open").click();
   assert.equal(await page.locator("#help").isVisible(), true);
   await page.locator("#help-close").click();
