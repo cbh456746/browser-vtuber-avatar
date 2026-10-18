@@ -1,11 +1,43 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { WebSocketServer } from "ws";
-import { VtsClient, PARAMETERS } from "../desktop/vts.mjs";
+import { VtsClient, PARAMETERS, HEAD_TRACKING_GAIN } from "../desktop/vts.mjs";
 const timeout = (ms) =>
   new Promise((_, reject) =>
     setTimeout(() => reject(Error("timed out")), ms).unref(),
   );
+test("head tracking permanently uses 85% gain without changing eyes or mouth", () => {
+  assert.equal(HEAD_TRACKING_GAIN, 0.85);
+  for (const angle of [0, 15, -15, 30, -30, 90, -90]) {
+    let pose;
+    const client = new VtsClient({
+      onPose: (value) => {
+        pose = value;
+      },
+    });
+    client.phase = "tracking";
+    client.window = Date.now();
+    client.count = 0;
+    const values = [angle, angle, 0.1, 0.1, 0.6];
+    PARAMETERS.forEach((name, i) =>
+      client.receive(
+        JSON.stringify({
+          apiName: "VTubeStudioPublicAPI",
+          apiVersion: "1.0",
+          messageType: "ParameterValueResponse",
+          requestID: name,
+          data: { name, value: values[i] },
+        }),
+      ),
+    );
+    const clamp = (n) => Math.max(-1, Math.min(1, n));
+    assert.equal(pose.x, clamp((angle / 30) * 0.85));
+    assert.equal(pose.y, clamp((-angle / 30) * 0.85));
+    assert.equal(pose.eyes, true);
+    assert.equal(pose.mouth, 0.6);
+    client.stop();
+  }
+});
 async function server() {
   const value = new WebSocketServer({ host: "127.0.0.1", port: 0 });
   await new Promise((resolve) => value.once("listening", resolve));

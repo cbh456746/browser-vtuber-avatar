@@ -5,15 +5,23 @@ import { getCurrentFuseWire, FuseV1Options } from "@electron/fuses";
 import { listPackage, extractFile } from "@electron/asar";
 import { spawnSync } from "node:child_process";
 import { APP_FILES } from "./runtime-files.mjs";
-const folder = path.resolve("dist/Illustration Avatar Studio-win32-x64"),
+const sourcePackage = JSON.parse(await fs.readFile("package.json", "utf8"));
+if (!/^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/.test(sourcePackage.version))
+  throw Error("Invalid package version");
+const folder = path.resolve(
+    "dist",
+    sourcePackage.version,
+    "Illustration Avatar Studio-win32-x64",
+  ),
   exe = path.join(folder, "Illustration Avatar Studio.exe");
 const fuses = await getCurrentFuseWire(exe),
   info = JSON.parse(await fs.readFile("release/BUILD-INFO.json", "utf8"));
 if (
+  info.version !== sourcePackage.version ||
   info.executableSha256 !==
-  createHash("sha256")
-    .update(await fs.readFile(exe))
-    .digest("hex")
+    createHash("sha256")
+      .update(await fs.readFile(exe))
+      .digest("hex")
 )
   throw Error("Executable hash changed");
 for (const key of [
@@ -50,19 +58,34 @@ const wsPackage = JSON.parse(
     path.join("node_modules", "ws", "package.json"),
   ).toString(),
 );
-const sourcePackage = JSON.parse(await fs.readFile("package.json", "utf8"));
 if (wsPackage.version !== sourcePackage.dependencies.ws)
   throw Error("Unexpected WebSocket dependency version");
-const probe = spawnSync(exe, ["--self-check"], {
-  env: {
-    ...process.env,
-    ELECTRON_RUN_AS_NODE: "1",
-    NODE_OPTIONS: "--require=__avatar_fuse_probe_missing_module__",
-  },
-  encoding: "utf8",
-  windowsHide: true,
-  timeout: 30000,
-});
+// Keep verification isolated from a running app and its private settings/token.
+const profiles = path.resolve(".local");
+await fs.mkdir(profiles, { recursive: true });
+const profile = await fs.mkdtemp(path.join(profiles, "release-check-"));
+let probe;
+try {
+  probe = spawnSync(exe, ["--self-check", `--user-data-dir=${profile}`], {
+    env: {
+      ...process.env,
+      ELECTRON_RUN_AS_NODE: "1",
+      NODE_OPTIONS: "--require=__avatar_fuse_probe_missing_module__",
+    },
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 30000,
+  });
+} finally {
+  if (!profile.startsWith(profiles + path.sep))
+    throw Error("Unsafe test profile");
+  await fs.rm(profile, {
+    recursive: true,
+    force: true,
+    maxRetries: 3,
+    retryDelay: 100,
+  });
+}
 if (probe.status !== 0) throw Error("Packaged app self-check failed");
 const diagnosticLine = probe.stdout
   .split(/\r?\n/)
@@ -85,6 +108,7 @@ const report = {
   debugArguments: false,
   packagedRendererLoaded: true,
   hostileEnvironmentIgnored: true,
+  isolatedTestProfile: true,
   signed: false,
   websocketVersion: wsPackage.version,
 };

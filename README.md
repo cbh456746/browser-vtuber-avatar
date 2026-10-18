@@ -59,6 +59,8 @@ https://github.com/cbh456746/browser-vtuber-avatar
 
 **0.2.2:** 실제 VTS와 호환성을 확인한 WebSocket 통신으로 교체하고, 인증 응답 사이의 빈 메시지와 재접속 시 토큰 재사용을 처리합니다. “VTS 연결됨 · 얼굴 미감지”는 승인 오류가 아니라 카메라·휴대폰 추적 확인이 필요한 상태입니다.
 
+**0.2.3:** 얼굴 추적의 고개 좌우·상하 입력을 기존보다 15% 줄인 기본값으로 고정했습니다. 새 캐릭터나 앱 재실행에도 유지하며 눈·입 감도는 바꾸지 않습니다. 닫힌 입선이 사라지는 그림을 예방하도록 생성 프롬프트와 A·D 50프레임의 실제 표시 크기 검수를 필수화했습니다. 기존 개인 캐릭터팩의 그림이 자동으로 바뀌지는 않으므로 수정된 팩을 불러와야 합니다.
+
 ## 방송 준비
 
 앱에서 **방송 화면 열기**를 누른 다음 OBS에서 **소스 추가 → 윈도우 캡처 → Illustration Avatar Studio - 방송 화면**을 선택합니다. 초록 배경은 필터의 크로마키로 제거합니다.
@@ -97,6 +99,8 @@ Node.js 22.12 이상을 사용하고 CI는 Node.js 24에서 검사합니다. 의
 ```sh
 npm run avatar:build -- private/sheets avatars/my-character "내 캐릭터"
 npm run avatar:check -- avatars/my-character/avatar.json
+# 생성된 검수용 미리보기를 실제로 확인하고 검수 기록을 작성한 뒤:
+npm run avatar:check -- avatars/my-character/avatar.json --mouth-review private/closed-mouth-review.json
 npm run package:win
 npm run verify:release
 ```

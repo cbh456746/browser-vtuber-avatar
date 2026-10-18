@@ -11,6 +11,8 @@ export const PARAMETERS = [
   "EyeOpenRight",
   "MouthOpen",
 ];
+// Permanent default: reduce head yaw/pitch gain by 15%; eyes and mouth are unchanged.
+export const HEAD_TRACKING_GAIN = 0.85;
 export class VtsClient {
   constructor({
     WebSocketImpl = WebSocket,
@@ -255,8 +257,8 @@ export class VtsClient {
       this.values[name] = value;
       const p = this.values;
       this.onPose({
-        x: Math.max(-1, Math.min(1, p.FaceAngleX / 30)),
-        y: Math.max(-1, Math.min(1, -p.FaceAngleY / 30)),
+        x: Math.max(-1, Math.min(1, (p.FaceAngleX / 30) * HEAD_TRACKING_GAIN)),
+        y: Math.max(-1, Math.min(1, (-p.FaceAngleY / 30) * HEAD_TRACKING_GAIN)),
         eyes: (p.EyeOpenLeft + p.EyeOpenRight) / 2 < 0.2,
         mouth: Math.max(0, Math.min(1, p.MouthOpen)),
       });

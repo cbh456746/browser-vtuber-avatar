@@ -6,9 +6,14 @@ import { flipFuses, FuseVersion, FuseV1Options } from "@electron/fuses";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { WS_FILES } from "./runtime-files.mjs";
-const root = path.resolve(fileURLToPath(new URL("..", import.meta.url))),
-  stage = path.join(root, ".local/package-stage"),
-  out = path.join(root, "dist");
+const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+const source = JSON.parse(
+  await fs.readFile(path.join(root, "package.json"), "utf8"),
+);
+if (!/^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/.test(source.version))
+  throw Error("Invalid package version");
+const stage = path.join(root, ".local/package-stage"),
+  out = path.join(root, "dist", source.version);
 // This generated staging directory is fixed inside this project, never user supplied.
 if (stage !== path.join(root, ".local", "package-stage"))
   throw Error("Unexpected staging path");
@@ -37,9 +42,6 @@ for (const file of WS_FILES) {
   await fs.mkdir(path.dirname(destination), { recursive: true });
   await fs.copyFile(path.join(root, "node_modules/ws", file), destination);
 }
-const source = JSON.parse(
-  await fs.readFile(path.join(root, "package.json"), "utf8"),
-);
 await fs.writeFile(
   path.join(stage, "package.json"),
   JSON.stringify({
@@ -140,7 +142,7 @@ if (process.platform === "win32") {
   );
 }
 console.log(
-  `Windows app ready: dist/${path.basename(target)}/${source.productName}.exe`,
+  `Windows app ready: dist/${source.version}/${path.basename(target)}/${source.productName}.exe`,
 );
 console.log(
   "실행 폴더와 ZIP을 만들었습니다. 전달 전 verify:release를 실행하세요. exe만 복사하지 않습니다.",

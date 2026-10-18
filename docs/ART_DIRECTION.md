@@ -31,6 +31,8 @@
 
 최종 앱 프레임은 512×512 PNG를 기본으로 합니다. 256·768·1024도 캐릭터팩 형식에서 지원하지만 모든 프레임의 규격이 같아야 합니다.
 
+**A·D의 닫힌 입은 피부색 빈 공간이 아니라 눈에 보이는 입선입니다.** 모든 방향에서 코와 턱 사이에 짧고 자연스러운 곡선을 유지하세요. 512px 프레임에서는 약 12~20px 폭·2~3px 두께를 출발점으로 삼되, 실제 캐릭터의 얼굴 크기에 맞춥니다. 옅은 점 하나로 대체하지 않습니다. 최종 판단은 전체 아바타를 128·256px로 줄여도 입이 읽히는지입니다. 눈을 감을 때 입선까지 지우지 않습니다.
+
 ## A 시트 생성 프롬프트
 
 ```text
@@ -47,6 +49,9 @@ Columns from left to right: head yaw toward viewer-left 30 degrees, left 15, cen
 Rows from top to bottom: head pitch up 20 degrees, up 10, level, down 10, down 20.
 The center cell must match the reference identity closely.
 All cells: eyes open, mouth closed, neutral pleasant expression.
+Every closed mouth must have a clearly visible short natural dark curved line between nose and chin.
+Never omit the mouth, erase it into the skin, or replace it with a faint dot.
+It must remain readable when the whole avatar is displayed at 128px and 256px.
 Keep the body stable; change the anatomical view of the head, not just the pupils or flat image tilt.
 Do not duplicate a front-facing head for all cells. Do not mirror asymmetric accessories.
 No text, watermark, logo, grid lines, background scene or extra characters.
@@ -66,6 +71,8 @@ Change only the eyes and mouth for the requested expression state:
 [B: eyes open, mouth half open / C: eyes open, mouth fully open /
  D: eyes fully closed, mouth closed / E: eyes fully closed, mouth half open /
  F: eyes fully closed, mouth fully open]
+For state D, preserve a clearly visible closed-mouth line on ALL 25 faces, even with closed eyes.
+For every state, the mouth must remain readable when the whole avatar is displayed at 128px and 256px.
 Produce exactly the same 5 by 5 layout. Do not move, redraw or resize the body between expression sheets.
 No labels, grid lines, text, painted checkerboard or opaque background.
 ```
@@ -75,5 +82,7 @@ No labels, grid lines, text, painted checkerboard or opaque background.
 ## 검수와 재생성
 
 자동 검사에 더해 25방향과 6표정 전환을 앱에서 봅니다. 머리 위치·캐릭터 크기·외곽선·의상·장식이 튀면 해당 시트를 재생성합니다. 나쁜 결과를 원본 옆에 그대로 공개하거나 완료 결과로 보고하지 않습니다.
+
+A·D 총 50개는 밝은 배경·어두운 배경의 128px·256px 미리보기에서 하나씩 검수합니다. 확대 화면에서만 보이는 입선도 실패입니다. 입선이 없거나 너무 옅으면 해당 그림을 이미지 생성 도구로 수정한 뒤 재검수합니다. 실행 시 임의 위치에 같은 입선을 덧그리는 방식으로 누락된 에셋을 숨기지 않습니다. 검수 기록 작성과 검사 방법은 [작업 워크플로우](AGENT_WORKFLOW.md)를 따릅니다.
 
 이미지 생성 도구가 없는 환경에서 이 문서만으로 새 그림이 생기는 것은 아닙니다. 단순 변형·반복 복사로 동일한 수준을 달성했다고 주장하지 않습니다.
