@@ -81,7 +81,7 @@ await fs.copyFile(
 );
 await fs.copyFile(
   path.join(root, "docs/OBS_GUIDE.md"),
-  path.join(target, "OBS 방송 설정.md"),
+  path.join(target, "OBS_GUIDE.md"),
 );
 await fs.writeFile(
   path.join(release, "BUILD-INFO.json"),
@@ -136,5 +136,5 @@ console.log(
   `Windows app ready: dist/${path.basename(target)}/${source.productName}.exe`,
 );
 console.log(
-  "배포 전 verify:release 후 실행 폴더 전체를 ZIP으로 묶으세요. exe만 복사하지 않습니다.",
+  "실행 폴더와 ZIP을 만들었습니다. 전달 전 verify:release를 실행하세요. exe만 복사하지 않습니다.",
 );
