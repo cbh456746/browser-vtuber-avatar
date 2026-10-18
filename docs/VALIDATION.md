@@ -23,7 +23,7 @@
 
 검사 명령은 npm test, test:desktop, avatar:check, audit:public, npm audit, package:win, verify:release입니다. 로컬 런타임은 Electron 44.9.0을 사용했습니다. 로컬 소켓 통신을 제한하는 실행 환경에서는 모의 서버 검사가 타임아웃될 수 있으므로 실제 코드 실패와 환경 제한을 구분합니다.
 
-GitHub CI는 별도의 깨끗한 Linux·Windows 환경에서 검사하도록 구성합니다. 첫 공개 시 해당 커밋의 Actions 결과를 별도로 확인하고 로컬 성공만으로 원격 CI 성공을 주장하지 않습니다.
+첫 공개 커밋 `83b76aedecdd3a8bc4d224ae399dee68b6f9a096`은 별도의 깨끗한 Linux·Windows 환경에서 [GitHub CI가 성공](https://github.com/cbh456746/browser-vtuber-avatar/actions/runs/39092239319)했습니다. Linux 검사와 Windows 데스크톱·실행파일 검사가 모두 통과했습니다. 후속 변경은 해당 커밋의 Actions 결과를 다시 확인합니다.
 
 ## 실제 장치·방송과 구분
 
