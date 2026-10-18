@@ -1,7 +1,7 @@
 {
   "name": "illustration-avatar-studio",
   "productName": "Illustration Avatar Studio",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "한 장의 일러스트로 제작하는 로컬 방송 아바타와 안전한 에이전트 워크플로우",
   "type": "module",
@@ -29,7 +29,9 @@
     "electron": "44.9.0",
     "playwright": "1.64.1",
     "prettier": "3.9.10",
-    "sharp": "0.35.5",
+    "sharp": "0.35.5"
+  },
+  "dependencies": {
     "ws": "8.22.0"
   }
 }

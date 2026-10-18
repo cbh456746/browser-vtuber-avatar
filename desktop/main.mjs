@@ -53,6 +53,7 @@ let control,
   saveQueue = Promise.resolve(),
   encryptedStorage = false;
 const state = {
+  version: app.getVersion(),
   avatar: { name: "Orbit · 기본 샘플", id: null },
   settings: { background: "green", mirror: false, size: 85, port: 8001 },
   mode: "manual",

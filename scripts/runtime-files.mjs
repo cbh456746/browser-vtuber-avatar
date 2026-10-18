@@ -1,0 +1,40 @@
+export const WS_FILES = [
+  "package.json",
+  "LICENSE",
+  "index.js",
+  "wrapper.mjs",
+  "browser.js",
+  ...[
+    "buffer-util",
+    "constants",
+    "event-target",
+    "extension",
+    "limiter",
+    "permessage-deflate",
+    "receiver",
+    "sender",
+    "stream",
+    "subprotocol",
+    "validation",
+    "websocket-server",
+    "websocket",
+  ].map((name) => `lib/${name}.js`),
+];
+export const APP_FILES = [
+  "LICENSE",
+  "NOTICE.md",
+  "package.json",
+  ...[
+    "app.js",
+    "index.html",
+    "mascot.js",
+    "output.html",
+    "output.js",
+    "pose.js",
+    "styles.css",
+  ].map((name) => `app/${name}`),
+  ...["main.mjs", "preload.cjs", "policy.mjs", "pack.mjs", "vts.mjs"].map(
+    (name) => `desktop/${name}`,
+  ),
+  ...WS_FILES.map((name) => `node_modules/ws/${name}`),
+];

@@ -5,6 +5,7 @@ import { packager } from "@electron/packager";
 import { flipFuses, FuseVersion, FuseV1Options } from "@electron/fuses";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { WS_FILES } from "./runtime-files.mjs";
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url))),
   stage = path.join(root, ".local/package-stage"),
   out = path.join(root, "dist");
@@ -31,6 +32,11 @@ await fs.cp(path.join(root, "app"), path.join(stage, "app"), {
 });
 for (const file of ["LICENSE", "NOTICE.md"])
   await fs.copyFile(path.join(root, file), path.join(stage, file));
+for (const file of WS_FILES) {
+  const destination = path.join(stage, "node_modules/ws", file);
+  await fs.mkdir(path.dirname(destination), { recursive: true });
+  await fs.copyFile(path.join(root, "node_modules/ws", file), destination);
+}
 const source = JSON.parse(
   await fs.readFile(path.join(root, "package.json"), "utf8"),
 );
@@ -43,6 +49,7 @@ await fs.writeFile(
     main: source.main,
     type: "module",
     license: source.license,
+    dependencies: source.dependencies,
   }),
 );
 const [target] = await packager({

@@ -13,3 +13,5 @@
 새로 작성한 코드와 Orbit 도형 캐릭터는 이 저장소의 MIT 조건으로 제공합니다. 사용자 입력·생성 캐릭터의 권리는 자동으로 이 고지에 포함되지 않습니다.
 
 Electron·Chromium 등 배포 런타임의 라이선스 고지는 패키징 도구가 생성한 실행 폴더에 보존합니다. 해당 파일을 제거해 실행파일만 배포하지 않습니다.
+
+VTube Studio 통신에는 [websockets/ws](https://github.com/websockets/ws)의 고정 버전 8.22.0을 사용합니다. MIT 라이선스 고지는 실행 패키지의 node_modules/ws/LICENSE에 포함합니다. ws의 코드를 이 프로젝트의 새 저작물로 표시하지 않습니다.

@@ -29,6 +29,7 @@ function update(state) {
   current = state;
   render({ ...state, frameUrl: state.avatar.id ? frameUrl(state) : null });
   $("avatar-name").textContent = state.avatar.name;
+  $("app-version").textContent = `v${state.version}`;
   $("status").textContent = state.status;
   $("mode-badge").textContent = {
     manual: "수동 미리보기",

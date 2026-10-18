@@ -1,4 +1,9 @@
 import { localVtsUrl } from "./policy.mjs";
+import { createRequire } from "node:module";
+// Load the audited JS transport without optional native-addon lookup outside ASAR.
+process.env.WS_NO_BUFFER_UTIL = "1";
+process.env.WS_NO_UTF_8_VALIDATE = "1";
+const { WebSocket } = createRequire(import.meta.url)("ws");
 export const PARAMETERS = [
   "FaceAngleX",
   "FaceAngleY",
@@ -8,7 +13,7 @@ export const PARAMETERS = [
 ];
 export class VtsClient {
   constructor({
-    WebSocketImpl = globalThis.WebSocket,
+    WebSocketImpl = WebSocket,
     onStatus = () => {},
     onPose = () => {},
     getToken = () => "",
@@ -40,6 +45,9 @@ export class VtsClient {
     this.url = url;
     this.running = true;
     this.attempt = 0;
+    this.tokenRequested = false;
+    this.pendingToken = null;
+    this.sessionToken = this.getToken();
     this.connect();
   }
   status(text) {
@@ -48,6 +56,7 @@ export class VtsClient {
   clear() {
     clearTimeout(this.timeout);
     clearInterval(this.poll);
+    clearInterval(this.facePoll);
     clearTimeout(this.reconnect);
   }
   stop() {
@@ -62,9 +71,13 @@ export class VtsClient {
     if (!this.running) return;
     this.clear();
     this.phase = "connecting";
-    this.tokenRequested = false;
     this.status("VTube Studio에 연결 중");
-    const socket = new this.WebSocketImpl(this.url);
+    const socket = new this.WebSocketImpl(this.url, {
+      perMessageDeflate: false,
+      maxPayload: 65536,
+      followRedirects: false,
+      handshakeTimeout: 8000,
+    });
     this.socket = socket;
     this.count = 0;
     this.window = Date.now();
@@ -72,7 +85,7 @@ export class VtsClient {
     socket.onopen = () => {
       if (this.socket !== socket) return;
       clearTimeout(this.timeout);
-      const token = this.getToken();
+      const token = this.pendingToken || this.sessionToken;
       if (token) this.authenticate(token);
       else this.requestToken();
     };
@@ -91,6 +104,13 @@ export class VtsClient {
       this.clear();
       this.socket = null;
       if (!this.running) return;
+      if (this.phase === "token") {
+        this.running = false;
+        this.status(
+          "승인 중 연결이 끊겼습니다. 확인 후 연결 버튼을 다시 눌러 주세요.",
+        );
+        return;
+      }
       this.status("추적 연결이 끊겼습니다. 다시 연결합니다.");
       const delay = Math.min(
         30000,
@@ -130,6 +150,8 @@ export class VtsClient {
       return;
     }
     this.tokenRequested = true;
+    this.sessionToken = "";
+    this.pendingToken = null;
     this.forgetToken();
     this.phase = "token";
     this.send("AuthenticationTokenRequest", "token", {
@@ -157,6 +179,9 @@ export class VtsClient {
       this.count = 0;
     }
     if (++this.count > 220) throw Error("과도한 응답");
+    // Some VTS versions send empty text messages between JSON responses.
+    // Count them toward the rate limit, but do not treat them as authentication failure.
+    if (raw.trim() === "") return;
     const msg = JSON.parse(raw);
     if (
       !msg ||
@@ -182,7 +207,13 @@ export class VtsClient {
       }
       clearTimeout(this.timeout);
       if (this.pendingToken) {
-        this.saveToken(this.pendingToken);
+        this.sessionToken = this.pendingToken;
+        try {
+          this.saveToken(this.pendingToken);
+        } catch {
+          // OS storage failure must not discard an already approved session.
+          // Retain the token in main-process memory only.
+        }
         this.pendingToken = null;
       }
       this.phase = "tracking";
@@ -194,6 +225,20 @@ export class VtsClient {
         );
       poll();
       this.poll = setInterval(poll, 50);
+      const checkFace = () => this.send("FaceFoundRequest", "face", {});
+      checkFace();
+      this.facePoll = setInterval(checkFace, 1000);
+    } else if (
+      msg.messageType === "FaceFoundResponse" &&
+      msg.requestID === "face" &&
+      this.phase === "tracking"
+    ) {
+      if (typeof msg.data?.found !== "boolean") throw Error("얼굴 감지 값");
+      this.status(
+        msg.data.found
+          ? "얼굴 추적 연결됨"
+          : "VTS 연결됨 · 얼굴 미감지: VTS의 카메라·휴대폰 추적을 확인해 주세요.",
+      );
     } else if (
       msg.messageType === "ParameterValueResponse" &&
       this.phase === "tracking" &&
@@ -217,13 +262,28 @@ export class VtsClient {
       });
     } else if (
       msg.messageType === "APIError" &&
-      ["auth", "token"].includes(msg.requestID)
+      (["auth", "token"].includes(msg.requestID) ||
+        (this.phase === "tracking" && PARAMETERS.includes(msg.requestID)))
     ) {
       this.running = false;
       this.clear();
       this.socket?.close();
-      this.forgetToken();
-      this.status("인증이 거부됐습니다. 설정을 확인한 뒤 다시 연결하세요.");
+      if (
+        ["auth", "token"].includes(msg.requestID) ||
+        [8, 50].includes(msg.data?.errorID)
+      ) {
+        this.sessionToken = "";
+        this.pendingToken = null;
+        this.forgetToken();
+        this.status("인증이 거부됐습니다. 설정을 확인한 뒤 다시 연결하세요.");
+      } else {
+        const code = Number.isInteger(msg.data?.errorID)
+          ? msg.data.errorID
+          : "알 수 없음";
+        this.status(
+          `VTube Studio 추적 응답 오류 (${code}). 설정을 확인한 뒤 다시 연결하세요.`,
+        );
+      }
     }
   }
 }
